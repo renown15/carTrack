@@ -1,39 +1,30 @@
 #!/usr/bin/env sh
-# check-ports.sh — fail fast if any required port is already in use.
-# Usage: ./scripts/check-ports.sh [server_port] [client_port]
-#   Defaults: server=3001, client=80
+# check-ports.sh — find free ports for server and client.
+# Prints exports ready to be eval'd: eval $(scripts/check-ports.sh)
+# Usage: eval $(scripts/check-ports.sh)
 
-SERVER_PORT="${1:-${SERVER_PORT:-3001}}"
-CLIENT_PORT="${2:-${CLIENT_PORT:-80}}"
-
-fail=0
-
-check_port() {
-  port="$1"
-  label="$2"
-  if command -v lsof >/dev/null 2>&1; then
-    if lsof -iTCP:"$port" -sTCP:LISTEN -t >/dev/null 2>&1; then
-      echo "ERROR: Port $port ($label) is already in use." >&2
-      echo "       Run: lsof -iTCP:$port -sTCP:LISTEN" >&2
-      fail=1
+find_free_port() {
+  preferred="$1"
+  port="$preferred"
+  while true; do
+    if command -v lsof >/dev/null 2>&1; then
+      lsof -iTCP:"$port" -sTCP:LISTEN -t >/dev/null 2>&1 || break
+    elif command -v nc >/dev/null 2>&1; then
+      nc -z 127.0.0.1 "$port" 2>/dev/null || break
+    else
+      break
     fi
-  elif command -v nc >/dev/null 2>&1; then
-    if nc -z 127.0.0.1 "$port" 2>/dev/null; then
-      echo "ERROR: Port $port ($label) is already in use." >&2
-      fail=1
-    fi
-  else
-    echo "WARN: Neither lsof nor nc found — skipping port check for $port ($label)." >&2
-  fi
+    port=$((port + 1))
+  done
+  echo "$port"
 }
 
-check_port "$SERVER_PORT" "server"
-check_port "$CLIENT_PORT" "client"
+SERVER_PORT=$(find_free_port "${SERVER_PORT:-3001}")
+CLIENT_PORT=$(find_free_port "${CLIENT_PORT:-5173}")
 
-if [ "$fail" -eq 1 ]; then
-  echo ""
-  echo "Resolve the port conflicts above before running 'docker compose up'."
-  exit 1
+echo "export SERVER_PORT=$SERVER_PORT"
+echo "export CLIENT_PORT=$CLIENT_PORT"
+
+if [ "$SERVER_PORT" != "${1:-3001}" ] || [ "$CLIENT_PORT" != "${2:-5173}" ]; then
+  echo "# Preferred ports were in use — using SERVER_PORT=$SERVER_PORT CLIENT_PORT=$CLIENT_PORT" >&2
 fi
-
-echo "Ports $SERVER_PORT (server) and $CLIENT_PORT (client) are free."

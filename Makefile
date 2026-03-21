@@ -3,12 +3,13 @@
         check-ports docker-up docker-down docker-logs docker-restart docker-ps \
         commit push
 
-# ── Default ───────────────────────────────────────────────────────────────────
 .DEFAULT_GOAL := help
 
 # ── Development ───────────────────────────────────────────────────────────────
 dev:
-	npm run dev
+	@eval $$(scripts/check-ports.sh) && \
+	  echo "Starting: server=$$SERVER_PORT client=$$CLIENT_PORT" && \
+	  PORT=$$SERVER_PORT VITE_PORT=$$CLIENT_PORT npm run dev
 
 install:
 	npm install
@@ -32,15 +33,17 @@ test:
 coverage:
 	npm run test:coverage
 
-## ci: typecheck + lint + coverage — run before every push
 ci: typecheck lint coverage
 
 # ── Docker ────────────────────────────────────────────────────────────────────
 check-ports:
-	scripts/check-ports.sh
+	@eval $$(scripts/check-ports.sh) && \
+	  echo "Using: server=$$SERVER_PORT client=$$CLIENT_PORT"
 
-docker-up: check-ports
-	docker compose up --build
+docker-up:
+	@eval $$(scripts/check-ports.sh) && \
+	  echo "Deploying: server=$$SERVER_PORT client=$$CLIENT_PORT" && \
+	  SERVER_PORT=$$SERVER_PORT CLIENT_PORT=$$CLIENT_PORT docker compose up --build
 
 docker-down:
 	docker compose down
@@ -55,14 +58,12 @@ docker-ps:
 	docker compose ps
 
 # ── Source control ────────────────────────────────────────────────────────────
-## commit: stage all changes, open editor for message, then push
 commit:
 	git add -A
 	git status
 	git commit
 	git push
 
-## push: run ci checks then push
 push: ci
 	git push
 
@@ -73,7 +74,7 @@ help:
 	@echo ""
 	@echo "  Development"
 	@echo "    install        npm install"
-	@echo "    dev            start server + client in watch mode"
+	@echo "    dev            find free ports, start server + client"
 	@echo "    build          build all packages"
 	@echo "    clean          remove dist/ and coverage/ directories"
 	@echo ""
@@ -85,8 +86,8 @@ help:
 	@echo "    ci             typecheck + lint + coverage (pre-push gate)"
 	@echo ""
 	@echo "  Docker"
-	@echo "    check-ports    scan for in-use ports"
-	@echo "    docker-up      check-ports then docker compose up --build"
+	@echo "    check-ports    show which ports will be used"
+	@echo "    docker-up      find free ports then docker compose up --build"
 	@echo "    docker-down    docker compose down"
 	@echo "    docker-logs    docker compose logs --follow"
 	@echo "    docker-restart docker compose restart"
