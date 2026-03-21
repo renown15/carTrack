@@ -8,8 +8,8 @@
 # ── Development ───────────────────────────────────────────────────────────────
 dev:
 	@eval $$(scripts/check-ports.sh) && \
-	  echo "Starting: server=$$SERVER_PORT client=$$CLIENT_PORT" && \
-	  PORT=$$SERVER_PORT VITE_PORT=$$CLIENT_PORT npm run dev
+	  echo "Starting: api=$$PORT client=$$VITE_PORT" && \
+	  PORT=$$PORT VITE_PORT=$$VITE_PORT npm run dev
 
 install:
 	npm install
@@ -42,8 +42,8 @@ check-ports:
 
 docker-up:
 	@eval $$(scripts/check-ports.sh) && \
-	  echo "Deploying: server=$$SERVER_PORT client=$$CLIENT_PORT" && \
-	  SERVER_PORT=$$SERVER_PORT CLIENT_PORT=$$CLIENT_PORT docker compose up --build
+	  echo "Deploying: api=$$PORT client=$$VITE_PORT" && \
+	  PORT=$$PORT VITE_PORT=$$VITE_PORT docker compose up --build
 
 docker-down:
 	docker compose down

@@ -1,11 +1,24 @@
 #!/usr/bin/env sh
-# check-ports.sh — find free ports for server and client.
-# Prints exports ready to be eval'd: eval $(scripts/check-ports.sh)
+# check-ports.sh — find free ports starting from the values in .env
 # Usage: eval $(scripts/check-ports.sh)
 
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+# Load .env defaults (command-line env vars take precedence)
+if [ -f "$ROOT/.env" ]; then
+  while IFS='=' read -r key value; do
+    case "$key" in
+      '#'*|'') continue ;;
+    esac
+    key=$(echo "$key" | tr -d ' ')
+    value=$(echo "$value" | tr -d ' ')
+    [ -z "$key" ] || [ -z "$value" ] && continue
+    eval "[ -z \"\${${key}+set}\" ] && export ${key}=\"${value}\""
+  done < "$ROOT/.env"
+fi
+
 find_free_port() {
-  preferred="$1"
-  port="$preferred"
+  port="${1}"
   while true; do
     if command -v lsof >/dev/null 2>&1; then
       lsof -iTCP:"$port" -sTCP:LISTEN -t >/dev/null 2>&1 || break
@@ -19,12 +32,16 @@ find_free_port() {
   echo "$port"
 }
 
-SERVER_PORT=$(find_free_port "${SERVER_PORT:-3001}")
-CLIENT_PORT=$(find_free_port "${CLIENT_PORT:-5173}")
+FREE_PORT=$(find_free_port "${PORT}")
+FREE_VITE_PORT=$(find_free_port "${VITE_PORT}")
 
-echo "export SERVER_PORT=$SERVER_PORT"
-echo "export CLIENT_PORT=$CLIENT_PORT"
+# Avoid both landing on the same port
+[ "$FREE_VITE_PORT" = "$FREE_PORT" ] && FREE_VITE_PORT=$((FREE_VITE_PORT + 1))
 
-if [ "$SERVER_PORT" != "${1:-3001}" ] || [ "$CLIENT_PORT" != "${2:-5173}" ]; then
-  echo "# Preferred ports were in use — using SERVER_PORT=$SERVER_PORT CLIENT_PORT=$CLIENT_PORT" >&2
-fi
+[ "$FREE_PORT" != "${PORT}" ] && \
+  echo "# Port ${PORT} in use — using ${FREE_PORT} for API" >&2
+[ "$FREE_VITE_PORT" != "${VITE_PORT}" ] && \
+  echo "# Port ${VITE_PORT} in use — using ${FREE_VITE_PORT} for client" >&2
+
+echo "export PORT=${FREE_PORT}"
+echo "export VITE_PORT=${FREE_VITE_PORT}"

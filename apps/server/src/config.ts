@@ -25,8 +25,10 @@ function loadEnv() {
 
 loadEnv();
 
+if (!process.env.PORT) throw new Error('PORT is not set — copy .env.example to .env');
+
 export const config = {
-  port: Number(process.env.PORT ?? 3001),
+  port: Number(process.env.PORT),
   tomtomApiKey: process.env.TOMTOM_API_KEY ?? '',
   dbPath: resolve(__dirname, '../../..', 'data', 'cartrack.db'),
 } as const;
