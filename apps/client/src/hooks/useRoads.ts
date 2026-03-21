@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Road, CreateRoadPayload } from '@cartrack/shared';
-import { api } from '../api/client.js';
+import { api } from '@client/api/client.js';
 
 export function useRoads() {
   const [roads, setRoads] = useState<Road[]>([]);

@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { randomUUID } from 'crypto';
-import { roadsDb } from '../db.js';
+import { roadsDb } from '@server/db.js';
 import type { CreateRoadPayload, UpdateRoadPayload } from '@cartrack/shared';
 
 export const roadsRoutes: FastifyPluginAsync = async (app) => {

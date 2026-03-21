@@ -1,5 +1,5 @@
 import type { Incident, IncidentCategory, IncidentMagnitude } from '@cartrack/shared';
-import { config } from '../config.js';
+import { config } from '@server/config.js';
 
 const BASE = 'https://api.tomtom.com/traffic/services/5/incidentDetails';
 

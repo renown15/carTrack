@@ -7,6 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@cartrack/shared': resolve(__dirname, '../../packages/shared/src/index.ts'),
+      '@client': resolve(__dirname, './src'),
     },
   },
   server: {

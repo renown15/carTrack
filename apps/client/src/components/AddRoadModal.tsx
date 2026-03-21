@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import type { GeocodeSuggestion, CreateRoadPayload } from '@cartrack/shared';
-import { api } from '../api/client.js';
+import { api } from '@client/api/client.js';
 
 interface Props {
   onAdd: (payload: CreateRoadPayload) => Promise<void>;

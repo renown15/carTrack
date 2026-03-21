@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Incident } from '@cartrack/shared';
-import { api } from '../api/client.js';
+import { api } from '@client/api/client.js';
 
 const POLL_INTERVAL_MS = 3 * 60 * 1000; // refresh every 3 minutes
 
@@ -27,7 +27,8 @@ export function useIncidents(roadIds: string[]) {
     } finally {
       setLoading(false);
     }
-  }, [roadIds.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+  // roadIds is an array — join gives a stable primitive for the dependency
+  }, [roadIds.join(',')]);
 
   useEffect(() => {
     void fetch();

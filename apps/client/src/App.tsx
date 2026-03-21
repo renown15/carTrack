@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useRoads } from './hooks/useRoads.js';
-import { useIncidents } from './hooks/useIncidents.js';
-import { RoadCard } from './components/RoadCard.js';
-import { AddRoadModal } from './components/AddRoadModal.js';
+import { useRoads } from '@client/hooks/useRoads.js';
+import { useIncidents } from '@client/hooks/useIncidents.js';
+import { RoadCard } from '@client/components/RoadCard.js';
+import { AddRoadModal } from '@client/components/AddRoadModal.js';
 
 export function App() {
   const { roads, loading: roadsLoading, error: roadsError, addRoad, removeRoad } = useRoads();

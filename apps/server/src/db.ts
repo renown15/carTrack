@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import { mkdirSync } from 'fs';
 import { dirname } from 'path';
-import { config } from './config.js';
+import { config } from '@server/config.js';
 import type { Road } from '@cartrack/shared';
 
 mkdirSync(dirname(config.dbPath), { recursive: true });

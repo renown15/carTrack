@@ -1,9 +1,9 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
-import { config } from './config.js';
-import { roadsRoutes } from './routes/roads.js';
-import { incidentsRoutes } from './routes/incidents.js';
-import { geocodeRoutes } from './routes/geocode.js';
+import { config } from '@server/config.js';
+import { roadsRoutes } from '@server/routes/roads.js';
+import { incidentsRoutes } from '@server/routes/incidents.js';
+import { geocodeRoutes } from '@server/routes/geocode.js';
 
 const app = Fastify({ logger: { level: 'info' } });
 

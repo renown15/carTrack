@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { geocodeSearch } from '../services/nominatim.js';
+import { geocodeSearch } from '@server/services/nominatim.js';
 
 export const geocodeRoutes: FastifyPluginAsync = async (app) => {
   // GET /api/geocode?q=A38+Bristol

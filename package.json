@@ -5,10 +5,18 @@
   "scripts": {
     "dev": "concurrently \"npm run dev -w apps/server\" \"npm run dev -w apps/client\"",
     "build": "npm run build -w packages/shared && npm run build -w apps/server && npm run build -w apps/client",
-    "typecheck": "npm run typecheck -w packages/shared && npm run typecheck -w apps/server && npm run typecheck -w apps/client"
+    "typecheck": "npm run typecheck -w packages/shared && npm run typecheck -w apps/server && npm run typecheck -w apps/client",
+    "lint": "eslint apps packages",
+    "test": "npm run test -w apps/server && npm run test -w apps/client",
+    "test:coverage": "npm run test:coverage -w apps/server && npm run test:coverage -w apps/client",
+    "docker:check-ports": "scripts/check-ports.sh",
+    "docker:up": "npm run docker:check-ports && docker compose up --build",
+    "docker:down": "docker compose down"
   },
   "devDependencies": {
     "concurrently": "^9.1.0",
-    "typescript": "^5.7.0"
+    "eslint": "^9.0.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.0.0"
   }
 }

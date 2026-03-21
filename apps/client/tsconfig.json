@@ -12,7 +12,8 @@
     "resolveJsonModule": true,
     "noEmit": true,
     "paths": {
-      "@cartrack/shared": ["../../packages/shared/src/index.ts"]
+      "@cartrack/shared": ["../../packages/shared/src/index.ts"],
+      "@client/*": ["./src/*"]
     }
   },
   "include": ["src"]

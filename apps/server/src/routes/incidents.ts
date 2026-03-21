@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { roadsDb } from '../db.js';
-import { fetchIncidents } from '../services/tomtom.js';
+import { roadsDb } from '@server/db.js';
+import { fetchIncidents } from '@server/services/tomtom.js';
 
 export const incidentsRoutes: FastifyPluginAsync = async (app) => {
   // GET /api/incidents/:roadId — live incidents for a single road

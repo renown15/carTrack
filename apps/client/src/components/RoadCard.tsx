@@ -1,5 +1,5 @@
 import type { Road, Incident } from '@cartrack/shared';
-import { IncidentBadge } from './IncidentBadge.js';
+import { IncidentBadge } from '@client/components/IncidentBadge.js';
 
 interface Props {
   road: Road;
