@@ -3,6 +3,10 @@
 export interface Road {
   id: string;
   name: string;
+  /** Human-readable start place name e.g. "West Hampstead" */
+  originName?: string;
+  /** Human-readable end place name e.g. "Elstree" */
+  destinationName?: string;
   /** Route start point [lat, lon] */
   origin: [number, number];
   /** Route end point [lat, lon] */

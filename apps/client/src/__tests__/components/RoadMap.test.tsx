@@ -45,39 +45,41 @@ const makeStatus = (overrides: Partial<RouteStatus> = {}): RouteStatus => ({
   ...overrides,
 });
 
+const baseProps = { selectedRoadId: null, onSelectRoad: () => {} };
+
 describe('RoadMap', () => {
   it('renders the map container', () => {
-    render(<RoadMap roads={[]} routeStatusByRoad={() => undefined} />);
+    render(<RoadMap roads={[]} routeStatusByRoad={() => undefined} {...baseProps} />);
     expect(screen.getByTestId('map-container')).toBeInTheDocument();
   });
 
   it('renders a polyline for each road', () => {
-    render(<RoadMap roads={[ROAD, { ...ROAD, id: 'r2', name: 'M5' }]} routeStatusByRoad={() => makeStatus()} />);
+    render(<RoadMap roads={[ROAD, { ...ROAD, id: 'r2', name: 'M5' }]} routeStatusByRoad={() => makeStatus()} {...baseProps} />);
     expect(screen.getAllByTestId('route-polyline')).toHaveLength(2);
   });
 
   it('renders origin and destination markers for each road', () => {
-    render(<RoadMap roads={[ROAD]} routeStatusByRoad={() => makeStatus()} />);
+    render(<RoadMap roads={[ROAD]} routeStatusByRoad={() => makeStatus()} {...baseProps} />);
     expect(screen.getAllByTestId('route-marker')).toHaveLength(2);
   });
 
   it('shows road name in popup', () => {
-    render(<RoadMap roads={[ROAD]} routeStatusByRoad={() => makeStatus()} />);
+    render(<RoadMap roads={[ROAD]} routeStatusByRoad={() => makeStatus()} {...baseProps} />);
     expect(screen.getByText('A41: West Hampstead → Elstree')).toBeInTheDocument();
   });
 
   it('shows Clear status when no delay', () => {
-    render(<RoadMap roads={[ROAD]} routeStatusByRoad={() => makeStatus({ delaySeconds: 0 })} />);
+    render(<RoadMap roads={[ROAD]} routeStatusByRoad={() => makeStatus({ delaySeconds: 0 })} {...baseProps} />);
     expect(screen.getByText('Clear')).toBeInTheDocument();
   });
 
   it('shows delay in popup when delay > 0', () => {
-    render(<RoadMap roads={[ROAD]} routeStatusByRoad={() => makeStatus({ journeyTimeSeconds: 1200, delaySeconds: 300 })} />);
+    render(<RoadMap roads={[ROAD]} routeStatusByRoad={() => makeStatus({ journeyTimeSeconds: 1200, delaySeconds: 300 })} {...baseProps} />);
     expect(screen.getByText('20 min (+5 min)')).toBeInTheDocument();
   });
 
   it('shows Loading when no status yet', () => {
-    render(<RoadMap roads={[ROAD]} routeStatusByRoad={() => undefined} />);
+    render(<RoadMap roads={[ROAD]} routeStatusByRoad={() => undefined} {...baseProps} />);
     expect(screen.getByText('Loading…')).toBeInTheDocument();
   });
 });

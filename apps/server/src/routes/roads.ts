@@ -26,6 +26,8 @@ export const roadsRoutes: FastifyPluginAsync = async (app) => {
     const road = {
       id: randomUUID(),
       name,
+      originName: req.body.originName,
+      destinationName: req.body.destinationName,
       origin: origin as [number, number],
       destination: destination as [number, number],
       createdAt: new Date().toISOString(),

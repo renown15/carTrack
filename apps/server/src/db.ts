@@ -16,13 +16,15 @@ db.pragma('foreign_keys = ON');
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS roads (
-    id          TEXT PRIMARY KEY,
-    name        TEXT NOT NULL,
-    origin_lat  REAL NOT NULL,
-    origin_lon  REAL NOT NULL,
-    dest_lat    REAL NOT NULL,
-    dest_lon    REAL NOT NULL,
-    created_at  TEXT NOT NULL
+    id           TEXT PRIMARY KEY,
+    name         TEXT NOT NULL,
+    origin_name  TEXT,
+    dest_name    TEXT,
+    origin_lat   REAL NOT NULL,
+    origin_lon   REAL NOT NULL,
+    dest_lat     REAL NOT NULL,
+    dest_lon     REAL NOT NULL,
+    created_at   TEXT NOT NULL
   );
 `);
 
@@ -32,6 +34,8 @@ function rowToRoad(row: Record<string, unknown>): Road {
   return {
     id: row.id as string,
     name: row.name as string,
+    originName: (row.origin_name as string | null) ?? undefined,
+    destinationName: (row.dest_name as string | null) ?? undefined,
     origin: [row.origin_lat as number, row.origin_lon as number],
     destination: [row.dest_lat as number, row.dest_lon as number],
     createdAt: row.created_at as string,
@@ -46,17 +50,19 @@ const stmts = {
   getRoad: db.prepare('SELECT * FROM roads WHERE id = ?'),
 
   insertRoad: db.prepare(`
-    INSERT INTO roads (id, name, origin_lat, origin_lon, dest_lat, dest_lon, created_at)
-    VALUES (@id, @name, @origin_lat, @origin_lon, @dest_lat, @dest_lon, @created_at)
+    INSERT INTO roads (id, name, origin_name, dest_name, origin_lat, origin_lon, dest_lat, dest_lon, created_at)
+    VALUES (@id, @name, @origin_name, @dest_name, @origin_lat, @origin_lon, @dest_lat, @dest_lon, @created_at)
   `),
 
   updateRoad: db.prepare(`
     UPDATE roads
-    SET name       = COALESCE(@name, name),
-        origin_lat = COALESCE(@origin_lat, origin_lat),
-        origin_lon = COALESCE(@origin_lon, origin_lon),
-        dest_lat   = COALESCE(@dest_lat, dest_lat),
-        dest_lon   = COALESCE(@dest_lon, dest_lon)
+    SET name        = COALESCE(@name, name),
+        origin_name = COALESCE(@origin_name, origin_name),
+        dest_name   = COALESCE(@dest_name, dest_name),
+        origin_lat  = COALESCE(@origin_lat, origin_lat),
+        origin_lon  = COALESCE(@origin_lon, origin_lon),
+        dest_lat    = COALESCE(@dest_lat, dest_lat),
+        dest_lon    = COALESCE(@dest_lon, dest_lon)
     WHERE id = @id
   `),
 
@@ -77,6 +83,8 @@ export const roadsDb = {
     stmts.insertRoad.run({
       id: road.id,
       name: road.name,
+      origin_name: road.originName ?? null,
+      dest_name: road.destinationName ?? null,
       origin_lat: road.origin[0],
       origin_lon: road.origin[1],
       dest_lat: road.destination[0],
@@ -89,6 +97,8 @@ export const roadsDb = {
     stmts.updateRoad.run({
       id,
       name: patch.name ?? null,
+      origin_name: patch.originName ?? null,
+      dest_name: patch.destinationName ?? null,
       origin_lat: patch.origin?.[0] ?? null,
       origin_lon: patch.origin?.[1] ?? null,
       dest_lat: patch.destination?.[0] ?? null,

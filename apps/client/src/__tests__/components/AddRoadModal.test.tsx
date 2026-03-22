@@ -113,6 +113,8 @@ describe('AddRoadModal', () => {
     // bbox is derived from centre lat/lon of each point + CORRIDOR_BUFFER (0.018°), not area bboxes
     expect(onAdd).toHaveBeenCalledWith({
       name: 'A41: West Hampstead → Elstree',
+      originName: 'West Hampstead',
+      destinationName: 'Elstree',
       origin: [FROM.lat, FROM.lon],
       destination: [TO.lat, TO.lon],
     });

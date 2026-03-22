@@ -63,6 +63,8 @@ export function AddRoadModal({ onAdd, onClose }: Props) {
     try {
       await onAdd({
         name: name.trim(),
+        originName: from.query,
+        destinationName: to.query,
         origin: [from.selected.lat, from.selected.lon],
         destination: [to.selected.lat, to.selected.lon],
       });

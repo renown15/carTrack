@@ -11,6 +11,7 @@ export function App() {
     roads.map((r) => r.id),
   );
   const [showAdd, setShowAdd] = useState(false);
+  const [selectedRoadId, setSelectedRoadId] = useState<string | null>(null);
 
   const updated = lastUpdated
     ? lastUpdated.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
@@ -72,6 +73,8 @@ export function App() {
               key={road.id}
               road={road}
               status={routeStatusByRoad(road.id)}
+              selected={selectedRoadId === road.id}
+              onSelect={setSelectedRoadId}
               onDelete={(id) => void removeRoad(id)}
             />
           ))}
@@ -79,7 +82,12 @@ export function App() {
 
         {/* Map panel */}
         <div className="flex-1 h-64 lg:h-auto shadow-sm min-h-0">
-          <RoadMap roads={roads} routeStatusByRoad={routeStatusByRoad} />
+          <RoadMap
+            roads={roads}
+            routeStatusByRoad={routeStatusByRoad}
+            selectedRoadId={selectedRoadId}
+            onSelectRoad={setSelectedRoadId}
+          />
         </div>
       </main>
 

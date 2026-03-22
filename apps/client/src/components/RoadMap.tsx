@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Polyline, Marker, Popup, Tooltip, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import type { Road, RouteStatus } from '@cartrack/shared';
 import 'leaflet/dist/leaflet.css';
@@ -7,12 +7,12 @@ import 'leaflet/dist/leaflet.css';
 const UK_CENTER: [number, number] = [54.5, -3];
 const UK_ZOOM = 5;
 
-function polylineColor(status: RouteStatus | undefined): string {
-  if (!status) return '#94a3b8';           // gray — not yet loaded
-  if (status.delaySeconds > 600) return '#f87171';  // red
-  if (status.delaySeconds > 180) return '#fb923c';  // orange
-  if (status.delaySeconds > 0)   return '#facc15';  // yellow
-  return '#22c55e';                                  // green
+function baseColor(status: RouteStatus | undefined): string {
+  if (!status) return '#94a3b8';
+  if (status.delaySeconds > 600) return '#f87171';
+  if (status.delaySeconds > 180) return '#fb923c';
+  if (status.delaySeconds > 0)   return '#facc15';
+  return '#22c55e';
 }
 
 function delayLabel(status: RouteStatus | undefined): string {
@@ -44,9 +44,13 @@ function FitBounds({ roads }: { roads: Road[] }) {
 interface Props {
   roads: Road[];
   routeStatusByRoad: (roadId: string) => RouteStatus | undefined;
+  selectedRoadId: string | null;
+  onSelectRoad: (id: string | null) => void;
 }
 
-export function RoadMap({ roads, routeStatusByRoad }: Props) {
+export function RoadMap({ roads, routeStatusByRoad, selectedRoadId, onSelectRoad }: Props) {
+  const anySelected = selectedRoadId !== null;
+
   return (
     <MapContainer
       center={UK_CENTER}
@@ -61,13 +65,25 @@ export function RoadMap({ roads, routeStatusByRoad }: Props) {
       <FitBounds roads={roads} />
       {roads.map((road) => {
         const status = routeStatusByRoad(road.id);
+        const isSelected = selectedRoadId === road.id;
         const routeLine: [number, number][] = status?.polyline?.length
           ? status.polyline
           : [road.origin, road.destination];
-        const color = polylineColor(status);
+        const color = baseColor(status);
+        const opacity = anySelected ? (isSelected ? 1 : 0.25) : 0.85;
+        const weight = isSelected ? 7 : 5;
 
         return (
-          <Polyline key={road.id} positions={routeLine} pathOptions={{ color, weight: 5, opacity: 0.85 }}>
+          <Polyline
+            key={road.id}
+            positions={routeLine}
+            pathOptions={{ color, weight, opacity }}
+            eventHandlers={{
+              click: () => onSelectRoad(isSelected ? null : road.id),
+              mouseover: () => onSelectRoad(road.id),
+              mouseout: () => onSelectRoad(null),
+            }}
+          >
             <Popup>
               <p className="font-semibold text-sm">{road.name}</p>
               <p className="text-xs text-gray-600">{delayLabel(status)}</p>
@@ -81,12 +97,30 @@ export function RoadMap({ roads, routeStatusByRoad }: Props) {
           </Polyline>
         );
       })}
-      {roads.map((road) => (
-        <Marker key={`${road.id}-origin`} position={road.origin} />
-      ))}
-      {roads.map((road) => (
-        <Marker key={`${road.id}-dest`} position={road.destination} />
-      ))}
+      {roads.map((road) => {
+        const isSelected = selectedRoadId === road.id;
+        return (
+          <Marker key={`${road.id}-origin`} position={road.origin}>
+            {road.originName && (
+              <Tooltip permanent={isSelected} direction="top" offset={[0, -10]}>
+                {road.originName}
+              </Tooltip>
+            )}
+          </Marker>
+        );
+      })}
+      {roads.map((road) => {
+        const isSelected = selectedRoadId === road.id;
+        return (
+          <Marker key={`${road.id}-dest`} position={road.destination}>
+            {road.destinationName && (
+              <Tooltip permanent={isSelected} direction="top" offset={[0, -10]}>
+                {road.destinationName}
+              </Tooltip>
+            )}
+          </Marker>
+        );
+      })}
     </MapContainer>
   );
 }

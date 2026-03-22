@@ -1,9 +1,12 @@
+import { useEffect, useRef } from 'react';
 import type { Road, RouteStatus } from '@cartrack/shared';
 import { IncidentBadge } from '@client/components/IncidentBadge.js';
 
 interface Props {
   road: Road;
   status: RouteStatus | undefined;
+  selected: boolean;
+  onSelect: (id: string | null) => void;
   onDelete: (id: string) => void;
 }
 
@@ -26,20 +29,36 @@ function fmt(seconds: number) {
   return m < 60 ? `${m} min` : `${Math.floor(m / 60)}h ${m % 60}m`;
 }
 
-export function RoadCard({ road, status, onDelete }: Props) {
+export function RoadCard({ road, status, selected, onSelect, onDelete }: Props) {
+  const ref = useRef<HTMLElement>(null);
   const colour = status ? delayColour(status.delaySeconds) : 'border-gray-300 bg-gray-50';
   const label  = status ? delayLabel(status.delaySeconds)  : 'Loading…';
 
+  useEffect(() => {
+    if (selected) ref.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [selected]);
+
   return (
-    <article className={`rounded-2xl border-2 ${colour} p-4 flex flex-col gap-3 shadow-sm`}>
+    <article
+      ref={ref}
+      className={`rounded-2xl border-2 ${colour} p-4 flex flex-col gap-3 shadow-sm cursor-pointer transition-shadow ${selected ? 'ring-2 ring-brand-500 ring-offset-2 shadow-md' : 'hover:shadow-md'}`}
+      onMouseEnter={() => onSelect(road.id)}
+      onMouseLeave={() => onSelect(null)}
+      onClick={() => onSelect(selected ? null : road.id)}
+    >
       <div className="flex items-start justify-between gap-2">
-        <h2 className="font-semibold text-gray-900 text-base leading-tight">{road.name}</h2>
+        <div>
+          <h2 className="font-semibold text-gray-900 text-base leading-tight">{road.name}</h2>
+          {road.originName && road.destinationName && (
+            <p className="text-xs text-gray-500 mt-0.5">{road.originName} → {road.destinationName}</p>
+          )}
+        </div>
         <div className="flex items-center gap-2 shrink-0">
           <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-white/70 border border-current">
             {label}
           </span>
           <button
-            onClick={() => onDelete(road.id)}
+            onClick={(e) => { e.stopPropagation(); onDelete(road.id); }}
             aria-label={`Remove ${road.name}`}
             className="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-white/60"
           >
