@@ -1,15 +1,16 @@
 .PHONY: help dev install build clean \
         typecheck lint test coverage ci \
         check-ports docker-up docker-down docker-logs docker-restart docker-ps \
-        commit push
+        logs logs-server commit push
 
 .DEFAULT_GOAL := help
 
 # ── Development ───────────────────────────────────────────────────────────────
 dev:
+	@mkdir -p .logs
 	@eval $$(scripts/check-ports.sh) && \
 	  echo "Starting: api=$$PORT client=$$VITE_PORT" && \
-	  PORT=$$PORT VITE_PORT=$$VITE_PORT npm run dev
+	  PORT=$$PORT VITE_PORT=$$VITE_PORT npm run dev 2>&1 | tee .logs/dev.log
 
 install:
 	npm install
@@ -64,6 +65,12 @@ commit:
 	git commit
 	git push
 
+logs:
+	@tail -f .logs/dev.log
+
+logs-server:
+	@grep -a '\[server\]\|\[api\]\|Error\|error\|warn' .logs/dev.log | tail -100
+
 push: ci
 	git push
 
@@ -74,7 +81,9 @@ help:
 	@echo ""
 	@echo "  Development"
 	@echo "    install        npm install"
-	@echo "    dev            find free ports, start server + client"
+	@echo "    dev            find free ports, start server + client (logs → .logs/dev.log)"
+	@echo "    logs           tail .logs/dev.log"
+	@echo "    logs-server    filter server/error lines from dev log"
 	@echo "    build          build all packages"
 	@echo "    clean          remove dist/ and coverage/ directories"
 	@echo ""
