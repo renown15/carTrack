@@ -21,7 +21,7 @@ export function AddRoadModal({ onAdd, onClose }: Props) {
     setQuery(val);
     setSelected(null);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (val.trim().length < 3) { setSuggestions([]); return; }
+    if (val.trim().length < 2) { setSuggestions([]); return; }
     debounceRef.current = setTimeout(async () => {
       setSearching(true);
       try {

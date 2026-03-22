@@ -47,21 +47,21 @@ describe('AddRoadModal', () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
-  it('does not search when query is shorter than 3 chars', async () => {
+  it('does not search when query is shorter than 2 chars', async () => {
     render(<AddRoadModal onAdd={vi.fn()} onClose={vi.fn()} />);
     const input = screen.getByPlaceholderText(/A38 Bristol/);
-    fireEvent.change(input, { target: { value: 'AB' } });
+    fireEvent.change(input, { target: { value: 'A' } });
     vi.runAllTimers();
     expect(mockApi.geocode.search).not.toHaveBeenCalled();
   });
 
-  it('searches after debounce delay when query is 3+ chars', async () => {
+  it('searches after debounce delay when query is 2+ chars', async () => {
     mockApi.geocode.search.mockResolvedValue([SUGGESTION]);
     render(<AddRoadModal onAdd={vi.fn()} onClose={vi.fn()} />);
     const input = screen.getByPlaceholderText(/A38 Bristol/);
-    fireEvent.change(input, { target: { value: 'A38' } });
+    fireEvent.change(input, { target: { value: 'M1' } });
     await act(async () => { vi.runAllTimers(); });
-    expect(mockApi.geocode.search).toHaveBeenCalledWith('A38');
+    expect(mockApi.geocode.search).toHaveBeenCalledWith('M1');
   });
 
   it('shows suggestions after search', async () => {
