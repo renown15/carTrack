@@ -14,8 +14,9 @@ const { useRoads } = await import('@client/hooks/useRoads.js');
 
 const ROAD = {
   id: 'r1',
-  name: 'A38',
-  bbox: [-2.6, 51.4, -2.5, 51.5] as [number, number, number, number],
+  name: 'A41: West Hampstead → Elstree',
+  origin: [51.55, -0.19] as [number, number],
+  destination: [51.65, -0.31] as [number, number],
   createdAt: '2026-01-01T00:00:00.000Z',
 };
 
@@ -44,7 +45,7 @@ describe('useRoads', () => {
     const { result } = renderHook(() => useRoads());
     await waitFor(() => expect(result.current.loading).toBe(false));
     await act(async () => {
-      await result.current.addRoad({ name: 'A38', bbox: ROAD.bbox });
+      await result.current.addRoad({ name: 'A41', origin: ROAD.origin, destination: ROAD.destination });
     });
     expect(result.current.roads).toEqual([ROAD]);
   });

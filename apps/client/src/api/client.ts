@@ -2,7 +2,7 @@ import type {
   Road,
   CreateRoadPayload,
   UpdateRoadPayload,
-  Incident,
+  RouteStatus,
   GeocodeSuggestion,
   ApiResponse,
 } from '@cartrack/shared';
@@ -31,8 +31,8 @@ export const api = {
   },
 
   incidents: {
-    all: () => request<Incident[]>('/incidents'),
-    forRoad: (roadId: string) => request<Incident[]>(`/incidents/${roadId}`),
+    all: () => request<RouteStatus[]>('/incidents'),
+    forRoad: (roadId: string) => request<RouteStatus>(`/incidents/${roadId}`),
   },
 
   geocode: {

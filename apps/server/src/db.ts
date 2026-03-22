@@ -18,11 +18,10 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS roads (
     id          TEXT PRIMARY KEY,
     name        TEXT NOT NULL,
-    description TEXT,
-    bbox_min_lon REAL NOT NULL,
-    bbox_min_lat REAL NOT NULL,
-    bbox_max_lon REAL NOT NULL,
-    bbox_max_lat REAL NOT NULL,
+    origin_lat  REAL NOT NULL,
+    origin_lon  REAL NOT NULL,
+    dest_lat    REAL NOT NULL,
+    dest_lon    REAL NOT NULL,
     created_at  TEXT NOT NULL
   );
 `);
@@ -33,13 +32,8 @@ function rowToRoad(row: Record<string, unknown>): Road {
   return {
     id: row.id as string,
     name: row.name as string,
-    description: row.description as string | undefined,
-    bbox: [
-      row.bbox_min_lon as number,
-      row.bbox_min_lat as number,
-      row.bbox_max_lon as number,
-      row.bbox_max_lat as number,
-    ],
+    origin: [row.origin_lat as number, row.origin_lon as number],
+    destination: [row.dest_lat as number, row.dest_lon as number],
     createdAt: row.created_at as string,
   };
 }
@@ -52,18 +46,17 @@ const stmts = {
   getRoad: db.prepare('SELECT * FROM roads WHERE id = ?'),
 
   insertRoad: db.prepare(`
-    INSERT INTO roads (id, name, description, bbox_min_lon, bbox_min_lat, bbox_max_lon, bbox_max_lat, created_at)
-    VALUES (@id, @name, @description, @bbox_min_lon, @bbox_min_lat, @bbox_max_lon, @bbox_max_lat, @created_at)
+    INSERT INTO roads (id, name, origin_lat, origin_lon, dest_lat, dest_lon, created_at)
+    VALUES (@id, @name, @origin_lat, @origin_lon, @dest_lat, @dest_lon, @created_at)
   `),
 
   updateRoad: db.prepare(`
     UPDATE roads
-    SET name = COALESCE(@name, name),
-        description = COALESCE(@description, description),
-        bbox_min_lon = COALESCE(@bbox_min_lon, bbox_min_lon),
-        bbox_min_lat = COALESCE(@bbox_min_lat, bbox_min_lat),
-        bbox_max_lon = COALESCE(@bbox_max_lon, bbox_max_lon),
-        bbox_max_lat = COALESCE(@bbox_max_lat, bbox_max_lat)
+    SET name       = COALESCE(@name, name),
+        origin_lat = COALESCE(@origin_lat, origin_lat),
+        origin_lon = COALESCE(@origin_lon, origin_lon),
+        dest_lat   = COALESCE(@dest_lat, dest_lat),
+        dest_lon   = COALESCE(@dest_lon, dest_lon)
     WHERE id = @id
   `),
 
@@ -84,11 +77,10 @@ export const roadsDb = {
     stmts.insertRoad.run({
       id: road.id,
       name: road.name,
-      description: road.description ?? null,
-      bbox_min_lon: road.bbox[0],
-      bbox_min_lat: road.bbox[1],
-      bbox_max_lon: road.bbox[2],
-      bbox_max_lat: road.bbox[3],
+      origin_lat: road.origin[0],
+      origin_lon: road.origin[1],
+      dest_lat: road.destination[0],
+      dest_lon: road.destination[1],
       created_at: road.createdAt,
     });
   },
@@ -97,11 +89,10 @@ export const roadsDb = {
     stmts.updateRoad.run({
       id,
       name: patch.name ?? null,
-      description: patch.description ?? null,
-      bbox_min_lon: patch.bbox?.[0] ?? null,
-      bbox_min_lat: patch.bbox?.[1] ?? null,
-      bbox_max_lon: patch.bbox?.[2] ?? null,
-      bbox_max_lat: patch.bbox?.[3] ?? null,
+      origin_lat: patch.origin?.[0] ?? null,
+      origin_lon: patch.origin?.[1] ?? null,
+      dest_lat: patch.destination?.[0] ?? null,
+      dest_lon: patch.destination?.[1] ?? null,
     });
     return roadsDb.get(id);
   },

@@ -4,117 +4,96 @@ vi.mock('@server/config.js', () => ({
   config: { port: 3001, tomtomApiKey: 'test-key', dbPath: ':memory:' },
 }));
 
-const { fetchIncidents } = await import('@server/services/tomtom.js');
+const { fetchRouteStatus } = await import('@server/services/tomtom.js');
 
-const BBOX: [number, number, number, number] = [-2.6, 51.4, -2.5, 51.5];
+const ORIGIN: [number, number] = [51.55, -0.19];
+const DEST: [number, number] = [51.65, -0.31];
 
-const FEATURE = {
+const ROUTE_RESPONSE = {
+  routes: [{
+    summary: {
+      travelTimeInSeconds: 1200,
+      trafficDelayInSeconds: 300,
+      noTrafficTravelTimeInSeconds: 900,
+    },
+    legs: [{
+      points: [
+        { latitude: 51.55, longitude: -0.19 },
+        { latitude: 51.60, longitude: -0.25 },
+        { latitude: 51.65, longitude: -0.31 },
+      ],
+    }],
+  }],
+};
+
+const INCIDENT_FEATURE = {
   type: 'Feature',
-  geometry: { type: 'Point', coordinates: [-2.55, 51.45] },
+  geometry: { type: 'Point', coordinates: [-0.25, 51.60] }, // on route
   properties: {
-    id: 'inc-1',
-    iconCategory: 1,       // Accident
-    magnitudeOfDelay: 3,   // Major
-    events: [{ description: 'Multi-vehicle crash', code: 1, iconCategory: 1 }],
-    startTime: '2026-01-01T08:00:00Z',
-    endTime: '2026-01-01T10:00:00Z',
-    from: 'Bristol',
-    to: 'Exeter',
-    length: 500,
-    delay: 600,
+    id: 'inc-1', iconCategory: 1, magnitudeOfDelay: 2,
+    events: [{ description: 'Accident on A41' }],
+    from: 'West Hampstead', to: 'Elstree',
+    length: 500, delay: 180,
+    startTime: '2026-01-01T08:00:00Z', endTime: '2026-01-01T09:00:00Z',
   },
 };
 
-describe('fetchIncidents', () => {
+describe('fetchRouteStatus', () => {
   beforeEach(() => vi.restoreAllMocks());
 
-  it('parses a successful TomTom response', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ incidents: [FEATURE] }),
-    } as unknown as Response);
+  it('calls routing API then incidents API', async () => {
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ROUTE_RESPONSE } as unknown as Response)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ incidents: [INCIDENT_FEATURE] }) } as unknown as Response);
 
-    const results = await fetchIncidents('road-1', BBOX);
-    expect(results).toHaveLength(1);
-    expect(results[0]).toMatchObject({
-      id: 'inc-1',
-      roadId: 'road-1',
-      category: 'Accident',
-      magnitude: 'Major',
-      description: 'Multi-vehicle crash',
-      from: 'Bristol',
-      to: 'Exeter',
-      delay: 600,
-      length: 500,
-      coordinates: [-2.55, 51.45],
-      source: 'tomtom',
-    });
+    const status = await fetchRouteStatus('r1', ORIGIN, DEST);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(status.roadId).toBe('r1');
+    expect(status.journeyTimeSeconds).toBe(1200);
+    expect(status.noTrafficTimeSeconds).toBe(900);
+    expect(status.delaySeconds).toBe(300);
   });
 
-  it('handles missing events by using category as description', async () => {
-    const featureNoEvents = {
-      ...FEATURE,
-      properties: { ...FEATURE.properties, events: undefined },
+  it('returns route polyline from routing API', async () => {
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ROUTE_RESPONSE } as unknown as Response)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ incidents: [] }) } as unknown as Response);
+
+    const status = await fetchRouteStatus('r1', ORIGIN, DEST);
+    expect(status.polyline).toHaveLength(3);
+    expect(status.polyline[0]).toEqual([51.55, -0.19]);
+  });
+
+  it('filters incidents to those near the route', async () => {
+    const offRouteFeature = {
+      ...INCIDENT_FEATURE,
+      geometry: { type: 'Point', coordinates: [-0.5, 51.3] }, // far from route
+      properties: { ...INCIDENT_FEATURE.properties, id: 'off-route' },
     };
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ incidents: [featureNoEvents] }),
-    } as unknown as Response);
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ROUTE_RESPONSE } as unknown as Response)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ incidents: [INCIDENT_FEATURE, offRouteFeature] }) } as unknown as Response);
 
-    const results = await fetchIncidents('road-1', BBOX);
-    expect(results[0].description).toBe('Accident on road');
+    const status = await fetchRouteStatus('r1', ORIGIN, DEST);
+    expect(status.incidents).toHaveLength(1);
+    expect(status.incidents[0].id).toBe('inc-1');
   });
 
-  it('handles no geometry gracefully', async () => {
-    const featureNoGeom = { ...FEATURE, geometry: undefined };
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ incidents: [featureNoGeom] }),
-    } as unknown as Response);
+  it('includes incidents with no coordinates (cannot be filtered out)', async () => {
+    const noGeomFeature = { ...INCIDENT_FEATURE, geometry: undefined, properties: { ...INCIDENT_FEATURE.properties, id: 'no-geom' } };
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ROUTE_RESPONSE } as unknown as Response)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ incidents: [noGeomFeature] }) } as unknown as Response);
 
-    const results = await fetchIncidents('road-1', BBOX);
-    expect(results[0].coordinates).toBeUndefined();
+    const status = await fetchRouteStatus('r1', ORIGIN, DEST);
+    expect(status.incidents).toHaveLength(1);
   });
 
-  it('handles empty incidents array', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ incidents: [] }),
+  it('throws when routing API returns non-ok', async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: false, status: 429, text: async () => 'Rate limited',
     } as unknown as Response);
-    const results = await fetchIncidents('road-1', BBOX);
-    expect(results).toEqual([]);
+    await expect(fetchRouteStatus('r1', ORIGIN, DEST)).rejects.toThrow('TomTom routing error 429');
   });
 
-  it('handles missing incidents key in response', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({}),
-    } as unknown as Response);
-    const results = await fetchIncidents('road-1', BBOX);
-    expect(results).toEqual([]);
-  });
-
-  it('throws on non-ok HTTP response', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 429,
-      text: async () => 'Rate limited',
-    } as unknown as Response);
-
-    await expect(fetchIncidents('road-1', BBOX)).rejects.toThrow('TomTom API error 429');
-  });
-
-  it('maps unknown iconCategory to Unknown', async () => {
-    const f = {
-      ...FEATURE,
-      properties: { ...FEATURE.properties, iconCategory: 999, magnitudeOfDelay: 99 },
-    };
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ incidents: [f] }),
-    } as unknown as Response);
-    const results = await fetchIncidents('road-1', BBOX);
-    expect(results[0].category).toBe('Unknown');
-    expect(results[0].magnitude).toBe('Unknown');
-  });
 });

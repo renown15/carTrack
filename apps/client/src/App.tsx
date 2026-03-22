@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useRoads } from '@client/hooks/useRoads.js';
-import { useIncidents } from '@client/hooks/useIncidents.js';
+import { useRouteStatus } from '@client/hooks/useRouteStatus.js';
 import { RoadCard } from '@client/components/RoadCard.js';
 import { AddRoadModal } from '@client/components/AddRoadModal.js';
 import { RoadMap } from '@client/components/RoadMap.js';
 
 export function App() {
   const { roads, loading: roadsLoading, error: roadsError, addRoad, removeRoad } = useRoads();
-  const { incidentsByRoad, loading: incidentsLoading, lastUpdated, refresh } = useIncidents(
+  const { routeStatusByRoad, loading: routeLoading, lastUpdated, refresh } = useRouteStatus(
     roads.map((r) => r.id),
   );
   const [showAdd, setShowAdd] = useState(false);
@@ -26,12 +26,12 @@ export function App() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => void refresh()}
-            disabled={incidentsLoading}
+            disabled={routeLoading}
             aria-label="Refresh"
             className="p-2 rounded-full hover:bg-brand-700 transition-colors disabled:opacity-50"
           >
             <svg
-              className={`w-5 h-5 ${incidentsLoading ? 'animate-spin' : ''}`}
+              className={`w-5 h-5 ${routeLoading ? 'animate-spin' : ''}`}
               fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
             >
               <path strokeLinecap="round" strokeLinejoin="round"
@@ -71,15 +71,15 @@ export function App() {
             <RoadCard
               key={road.id}
               road={road}
-              incidents={incidentsByRoad(road.id)}
+              status={routeStatusByRoad(road.id)}
               onDelete={(id) => void removeRoad(id)}
             />
           ))}
         </aside>
 
         {/* Map panel */}
-        <div className="flex-1 h-64 lg:h-auto rounded-2xl overflow-hidden shadow-sm min-h-0">
-          <RoadMap roads={roads} incidentsByRoad={incidentsByRoad} />
+        <div className="flex-1 h-64 lg:h-auto shadow-sm min-h-0">
+          <RoadMap roads={roads} routeStatusByRoad={routeStatusByRoad} />
         </div>
       </main>
 

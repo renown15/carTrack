@@ -6,8 +6,7 @@ import type { CreateRoadPayload, UpdateRoadPayload } from '@cartrack/shared';
 export const roadsRoutes: FastifyPluginAsync = async (app) => {
   // GET /api/roads
   app.get('/', async (_req, reply) => {
-    const roads = roadsDb.list();
-    return reply.send({ ok: true, data: roads });
+    return reply.send({ ok: true, data: roadsDb.list() });
   });
 
   // GET /api/roads/:id
@@ -19,15 +18,16 @@ export const roadsRoutes: FastifyPluginAsync = async (app) => {
 
   // POST /api/roads
   app.post<{ Body: CreateRoadPayload }>('/', async (req, reply) => {
-    const body = req.body;
-    if (!body.name || !body.bbox || body.bbox.length !== 4) {
-      return reply.code(400).send({ ok: false, error: 'name and bbox[4] are required' });
+    const { name, origin, destination } = req.body;
+    if (!name || !Array.isArray(origin) || origin.length !== 2 ||
+        !Array.isArray(destination) || destination.length !== 2) {
+      return reply.code(400).send({ ok: false, error: 'name, origin[2] and destination[2] are required' });
     }
     const road = {
       id: randomUUID(),
-      name: body.name,
-      description: body.description,
-      bbox: body.bbox,
+      name,
+      origin: origin as [number, number],
+      destination: destination as [number, number],
       createdAt: new Date().toISOString(),
     };
     roadsDb.insert(road);

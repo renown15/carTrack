@@ -1,28 +1,31 @@
 import { useEffect } from 'react';
-import { MapContainer, TileLayer, Rectangle, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import type { Road, Incident } from '@cartrack/shared';
+import type { Road, RouteStatus } from '@cartrack/shared';
 import 'leaflet/dist/leaflet.css';
 
 const UK_CENTER: [number, number] = [54.5, -3];
 const UK_ZOOM = 5;
 
-function rectOptions(incidents: Incident[]) {
-  if (incidents.some((i) => i.magnitude === 'Major' || i.category === 'RoadClosed'))
-    return { color: '#f87171', fillColor: '#fef2f2', fillOpacity: 0.5, weight: 2 };
-  if (incidents.some((i) => i.magnitude === 'Moderate' || i.category === 'Jam'))
-    return { color: '#fb923c', fillColor: '#fff7ed', fillOpacity: 0.5, weight: 2 };
-  if (incidents.length > 0)
-    return { color: '#facc15', fillColor: '#fefce8', fillOpacity: 0.5, weight: 2 };
-  return { color: '#4ade80', fillColor: '#f0fdf4', fillOpacity: 0.5, weight: 2 };
+function polylineColor(status: RouteStatus | undefined): string {
+  if (!status) return '#94a3b8';           // gray — not yet loaded
+  if (status.delaySeconds > 600) return '#f87171';  // red
+  if (status.delaySeconds > 180) return '#fb923c';  // orange
+  if (status.delaySeconds > 0)   return '#facc15';  // yellow
+  return '#22c55e';                                  // green
 }
 
-function statusLabel(incidents: Incident[]) {
-  if (incidents.some((i) => i.category === 'RoadClosed')) return 'Closed';
-  if (incidents.some((i) => i.magnitude === 'Major')) return 'Major incident';
-  if (incidents.some((i) => i.magnitude === 'Moderate')) return 'Delays';
-  if (incidents.length > 0) return 'Minor issues';
+function delayLabel(status: RouteStatus | undefined): string {
+  if (!status) return 'Loading…';
+  if (status.delaySeconds > 600) return 'Major delays';
+  if (status.delaySeconds > 180) return 'Delays';
+  if (status.delaySeconds > 0)   return 'Minor delay';
   return 'Clear';
+}
+
+function fmt(s: number) {
+  const m = Math.round(s / 60);
+  return m < 60 ? `${m} min` : `${Math.floor(m / 60)}h ${m % 60}m`;
 }
 
 function FitBounds({ roads }: { roads: Road[] }) {
@@ -30,25 +33,25 @@ function FitBounds({ roads }: { roads: Road[] }) {
   useEffect(() => {
     if (roads.length === 0) return;
     const points = roads.flatMap((r) => [
-      L.latLng(r.bbox[1], r.bbox[0]),
-      L.latLng(r.bbox[3], r.bbox[2]),
+      L.latLng(r.origin[0], r.origin[1]),
+      L.latLng(r.destination[0], r.destination[1]),
     ]);
-    map.fitBounds(L.latLngBounds(points), { padding: [24, 24] });
+    map.fitBounds(L.latLngBounds(points), { padding: [40, 40] });
   }, [map, roads]);
   return null;
 }
 
 interface Props {
   roads: Road[];
-  incidentsByRoad: (roadId: string) => Incident[];
+  routeStatusByRoad: (roadId: string) => RouteStatus | undefined;
 }
 
-export function RoadMap({ roads, incidentsByRoad }: Props) {
+export function RoadMap({ roads, routeStatusByRoad }: Props) {
   return (
     <MapContainer
       center={UK_CENTER}
       zoom={UK_ZOOM}
-      className="h-full w-full"
+      className="h-full w-full rounded-2xl"
       scrollWheelZoom
     >
       <TileLayer
@@ -57,25 +60,33 @@ export function RoadMap({ roads, incidentsByRoad }: Props) {
       />
       <FitBounds roads={roads} />
       {roads.map((road) => {
-        const incidents = incidentsByRoad(road.id);
-        const bounds: [[number, number], [number, number]] = [
-          [road.bbox[1], road.bbox[0]],
-          [road.bbox[3], road.bbox[2]],
-        ];
+        const status = routeStatusByRoad(road.id);
+        const routeLine: [number, number][] = status?.polyline?.length
+          ? status.polyline
+          : [road.origin, road.destination];
+        const color = polylineColor(status);
+
         return (
-          <Rectangle key={road.id} bounds={bounds} pathOptions={rectOptions(incidents)}>
+          <Polyline key={road.id} positions={routeLine} pathOptions={{ color, weight: 5, opacity: 0.85 }}>
             <Popup>
               <p className="font-semibold text-sm">{road.name}</p>
-              <p className="text-xs text-gray-600">{statusLabel(incidents)}</p>
-              {incidents.length > 0 && (
-                <p className="text-xs text-gray-400">
-                  {incidents.length} incident{incidents.length !== 1 ? 's' : ''}
+              <p className="text-xs text-gray-600">{delayLabel(status)}</p>
+              {status && (
+                <p className="text-xs text-gray-500">
+                  {fmt(status.journeyTimeSeconds)}
+                  {status.delaySeconds > 0 && ` (+${fmt(status.delaySeconds)})`}
                 </p>
               )}
             </Popup>
-          </Rectangle>
+          </Polyline>
         );
       })}
+      {roads.map((road) => (
+        <Marker key={`${road.id}-origin`} position={road.origin} />
+      ))}
+      {roads.map((road) => (
+        <Marker key={`${road.id}-dest`} position={road.destination} />
+      ))}
     </MapContainer>
   );
 }

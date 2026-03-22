@@ -25,14 +25,14 @@ describe('api.roads', () => {
   });
 
   it('create() posts payload and returns road', async () => {
-    const payload = { name: 'A38', bbox: [-2.6, 51.4, -2.5, 51.5] as [number, number, number, number] };
+    const payload = { name: 'A41', origin: [51.55, -0.19] as [number, number], destination: [51.65, -0.31] as [number, number] };
     mockFetch({ ok: true, data: { id: 'r1', ...payload } });
     const road = await api.roads.create(payload);
     expect(global.fetch).toHaveBeenCalledWith(
       '/api/roads',
       expect.objectContaining({ method: 'POST' }),
     );
-    expect(road).toMatchObject({ name: 'A38' });
+    expect(road).toMatchObject({ name: 'A41' });
   });
 
   it('update() patches road', async () => {

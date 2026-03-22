@@ -9,15 +9,14 @@ const { roadsDb } = await import('@server/db.js');
 
 const ROAD = {
   id: 'road-1',
-  name: 'A38 Bristol',
-  description: 'Morning school run',
-  bbox: [-2.6, 51.4, -2.5, 51.5] as [number, number, number, number],
+  name: 'A41: West Hampstead → Elstree',
+  origin: [51.55, -0.19] as [number, number],
+  destination: [51.65, -0.31] as [number, number],
   createdAt: '2026-01-01T00:00:00.000Z',
 };
 
 describe('roadsDb', () => {
   beforeEach(() => {
-    // Clear the table between tests
     for (const r of roadsDb.list()) roadsDb.delete(r.id);
   });
 
@@ -29,7 +28,14 @@ describe('roadsDb', () => {
     roadsDb.insert(ROAD);
     const list = roadsDb.list();
     expect(list).toHaveLength(1);
-    expect(list[0]).toMatchObject({ id: 'road-1', name: 'A38 Bristol' });
+    expect(list[0]).toMatchObject({ id: 'road-1', name: 'A41: West Hampstead → Elstree' });
+  });
+
+  it('insert() stores origin and destination correctly', () => {
+    roadsDb.insert(ROAD);
+    const r = roadsDb.get('road-1');
+    expect(r?.origin).toEqual([51.55, -0.19]);
+    expect(r?.destination).toEqual([51.65, -0.31]);
   });
 
   it('get() returns a road by id', () => {
@@ -45,7 +51,7 @@ describe('roadsDb', () => {
     roadsDb.insert(ROAD);
     const updated = roadsDb.update('road-1', { name: 'M5 South' });
     expect(updated?.name).toBe('M5 South');
-    expect(updated?.description).toBe('Morning school run');
+    expect(updated?.origin).toEqual([51.55, -0.19]);
   });
 
   it('update() returns undefined for unknown id', () => {
@@ -60,17 +66,5 @@ describe('roadsDb', () => {
 
   it('delete() returns false for unknown id', () => {
     expect(roadsDb.delete('missing')).toBe(false);
-  });
-
-  it('insert() stores bbox correctly', () => {
-    roadsDb.insert(ROAD);
-    const r = roadsDb.get('road-1');
-    expect(r?.bbox).toEqual([-2.6, 51.4, -2.5, 51.5]);
-  });
-
-  it('insert() allows undefined description', () => {
-    roadsDb.insert({ ...ROAD, id: 'road-2', description: undefined });
-    const r = roadsDb.get('road-2');
-    expect(r?.description).toBeFalsy();
   });
 });

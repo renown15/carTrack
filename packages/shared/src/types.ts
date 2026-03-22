@@ -2,17 +2,31 @@
 
 export interface Road {
   id: string;
-  name: string;           // e.g. "A38 Bristol Road"
-  description?: string;   // e.g. "School run - morning"
-  /** Bounding box for incident queries: [minLon, minLat, maxLon, maxLat] */
-  bbox: [number, number, number, number];
-  createdAt: string;      // ISO timestamp
+  name: string;
+  /** Route start point [lat, lon] */
+  origin: [number, number];
+  /** Route end point [lat, lon] */
+  destination: [number, number];
+  createdAt: string;
 }
 
 export type CreateRoadPayload = Omit<Road, 'id' | 'createdAt'>;
 export type UpdateRoadPayload = Partial<CreateRoadPayload>;
 
-// ── Traffic incidents (from TomTom) ──────────────────────────────────────────
+// ── Route status (TomTom routing + filtered incidents) ────────────────────────
+
+export interface RouteStatus {
+  roadId: string;
+  journeyTimeSeconds: number;
+  noTrafficTimeSeconds: number;
+  delaySeconds: number;
+  incidents: Incident[];
+  /** Route polyline as [lat, lon] pairs returned by TomTom routing */
+  polyline: [number, number][];
+  updatedAt: string;
+}
+
+// ── Traffic incidents (from TomTom incidents API) ─────────────────────────────
 
 export type IncidentCategory =
   | 'Unknown'

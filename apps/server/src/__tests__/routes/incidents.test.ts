@@ -1,34 +1,36 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import Fastify from 'fastify';
-import type { Road, Incident } from '@cartrack/shared';
+import type { Road, RouteStatus } from '@cartrack/shared';
 
 const mockRoadsDb = {
   list: vi.fn<() => Road[]>(),
   get: vi.fn<(id: string) => Road | undefined>(),
 };
-const mockFetchIncidents = vi.fn<(id: string, bbox: [number, number, number, number]) => Promise<Incident[]>>();
+const mockFetchRouteStatus = vi.fn<
+  (id: string, origin: [number, number], dest: [number, number]) => Promise<RouteStatus>
+>();
 
 vi.mock('@server/db.js', () => ({ roadsDb: mockRoadsDb }));
-vi.mock('@server/services/tomtom.js', () => ({ fetchIncidents: mockFetchIncidents }));
+vi.mock('@server/services/tomtom.js', () => ({ fetchRouteStatus: mockFetchRouteStatus }));
 
 const { incidentsRoutes } = await import('@server/routes/incidents.js');
 
 const ROAD: Road = {
   id: 'r1',
-  name: 'A38',
-  bbox: [-2.6, 51.4, -2.5, 51.5],
+  name: 'A41: West Hampstead → Elstree',
+  origin: [51.55, -0.19],
+  destination: [51.65, -0.31],
   createdAt: '2026-01-01T00:00:00.000Z',
 };
 
-const INC: Incident = {
-  id: 'i1',
+const STATUS: RouteStatus = {
   roadId: 'r1',
-  category: 'Accident',
-  magnitude: 'Major',
-  description: 'Multi-vehicle accident',
-  from: 'Bristol',
-  to: 'Exeter',
-  source: 'tomtom',
+  journeyTimeSeconds: 1200,
+  noTrafficTimeSeconds: 900,
+  delaySeconds: 300,
+  incidents: [],
+  polyline: [[51.55, -0.19], [51.65, -0.31]],
+  updatedAt: '2026-01-01T08:00:00.000Z',
 };
 
 function buildApp() {
@@ -40,27 +42,25 @@ function buildApp() {
 describe('GET /api/incidents/:roadId', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('returns incidents for a known road', async () => {
+  it('returns route status for a known road', async () => {
     mockRoadsDb.get.mockReturnValue(ROAD);
-    mockFetchIncidents.mockResolvedValue([INC]);
-    const app = buildApp();
-    const res = await app.inject({ method: 'GET', url: '/api/incidents/r1' });
+    mockFetchRouteStatus.mockResolvedValue(STATUS);
+    const res = await buildApp().inject({ method: 'GET', url: '/api/incidents/r1' });
     expect(res.statusCode).toBe(200);
-    expect(res.json().data).toHaveLength(1);
+    expect(res.json().data.journeyTimeSeconds).toBe(1200);
+    expect(res.json().data.delaySeconds).toBe(300);
   });
 
   it('returns 404 for unknown road', async () => {
     mockRoadsDb.get.mockReturnValue(undefined);
-    const app = buildApp();
-    const res = await app.inject({ method: 'GET', url: '/api/incidents/missing' });
+    const res = await buildApp().inject({ method: 'GET', url: '/api/incidents/missing' });
     expect(res.statusCode).toBe(404);
   });
 
   it('returns 502 when TomTom throws', async () => {
     mockRoadsDb.get.mockReturnValue(ROAD);
-    mockFetchIncidents.mockRejectedValue(new Error('API down'));
-    const app = buildApp();
-    const res = await app.inject({ method: 'GET', url: '/api/incidents/r1' });
+    mockFetchRouteStatus.mockRejectedValue(new Error('API down'));
+    const res = await buildApp().inject({ method: 'GET', url: '/api/incidents/r1' });
     expect(res.statusCode).toBe(502);
     expect(res.json().error).toBe('API down');
   });
@@ -71,30 +71,28 @@ describe('GET /api/incidents', () => {
 
   it('returns empty array when no roads exist', async () => {
     mockRoadsDb.list.mockReturnValue([]);
-    const app = buildApp();
-    const res = await app.inject({ method: 'GET', url: '/api/incidents' });
+    const res = await buildApp().inject({ method: 'GET', url: '/api/incidents' });
     expect(res.statusCode).toBe(200);
     expect(res.json().data).toEqual([]);
   });
 
-  it('aggregates incidents across all roads', async () => {
-    mockRoadsDb.list.mockReturnValue([ROAD, { ...ROAD, id: 'r2' }]);
-    mockFetchIncidents
-      .mockResolvedValueOnce([INC])
-      .mockResolvedValueOnce([{ ...INC, id: 'i2', roadId: 'r2' }]);
-    const app = buildApp();
-    const res = await app.inject({ method: 'GET', url: '/api/incidents' });
+  it('returns route statuses for all roads', async () => {
+    const road2 = { ...ROAD, id: 'r2' };
+    mockRoadsDb.list.mockReturnValue([ROAD, road2]);
+    mockFetchRouteStatus
+      .mockResolvedValueOnce(STATUS)
+      .mockResolvedValueOnce({ ...STATUS, roadId: 'r2' });
+    const res = await buildApp().inject({ method: 'GET', url: '/api/incidents' });
     expect(res.statusCode).toBe(200);
     expect(res.json().data).toHaveLength(2);
   });
 
   it('silently drops failed roads and returns the rest', async () => {
     mockRoadsDb.list.mockReturnValue([ROAD, { ...ROAD, id: 'r2' }]);
-    mockFetchIncidents
-      .mockResolvedValueOnce([INC])
+    mockFetchRouteStatus
+      .mockResolvedValueOnce(STATUS)
       .mockRejectedValueOnce(new Error('fail'));
-    const app = buildApp();
-    const res = await app.inject({ method: 'GET', url: '/api/incidents' });
+    const res = await buildApp().inject({ method: 'GET', url: '/api/incidents' });
     expect(res.statusCode).toBe(200);
     expect(res.json().data).toHaveLength(1);
   });

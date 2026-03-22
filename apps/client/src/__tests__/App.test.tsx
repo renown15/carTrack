@@ -4,8 +4,9 @@ import type { Road } from '@cartrack/shared';
 
 const ROAD: Road = {
   id: 'r1',
-  name: 'A38 Bristol',
-  bbox: [-2.6, 51.4, -2.5, 51.5],
+  name: 'A41: West Hampstead → Elstree',
+  origin: [51.55, -0.19],
+  destination: [51.65, -0.31],
   createdAt: '2026-01-01T00:00:00.000Z',
 };
 
@@ -19,9 +20,9 @@ vi.mock('@client/hooks/useRoads.js', () => ({
   }),
 }));
 
-vi.mock('@client/hooks/useIncidents.js', () => ({
-  useIncidents: () => ({
-    incidentsByRoad: () => [],
+vi.mock('@client/hooks/useRouteStatus.js', () => ({
+  useRouteStatus: () => ({
+    routeStatusByRoad: () => undefined,
     loading: false,
     lastUpdated: null,
     refresh: vi.fn(),
@@ -38,7 +39,7 @@ describe('App', () => {
 
   it('renders a road card for each road', () => {
     render(<App />);
-    expect(screen.getByText('A38 Bristol')).toBeInTheDocument();
+    expect(screen.getByText('A41: West Hampstead → Elstree')).toBeInTheDocument();
   });
 
   it('renders the Add road button', () => {
