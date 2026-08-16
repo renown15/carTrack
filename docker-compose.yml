@@ -1,0 +1,38 @@
+services:
+  server:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${PORT}:${PORT}"
+    environment:
+      PORT: "${PORT}"
+      TOMTOM_API_KEY: "${TOMTOM_API_KEY:-}"
+      DB_PATH: /data/cartrack.db
+    volumes:
+      - cartrack-db-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:${PORT}/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  client:
+    build:
+      context: .
+      dockerfile: apps/client/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${VITE_PORT}:80"
+    volumes:
+      - cartrack-nginx-logs:/var/log/nginx
+    depends_on:
+      server:
+        condition: service_healthy
+
+volumes:
+  cartrack-db-data:
+    name: cartrack-db-data
+  cartrack-nginx-logs:
+    name: cartrack-nginx-logs

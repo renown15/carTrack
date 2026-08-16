@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "paths": {
+      "@cartrack/shared": ["../../packages/shared/src/index.ts"],
+      "@server/*": ["./src/*"]
+    }
+  },
+  "include": ["src"]
+}
